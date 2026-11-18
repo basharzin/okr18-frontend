@@ -1,0 +1,40 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ConfirmAndGroupNewUsersInOurPoolOnly",
+      "Effect": "Allow",
+      "Action": [
+        "cognito-idp:AdminConfirmSignUp",
+        "cognito-idp:AdminAddUserToGroup"
+      ],
+      "Resource": "arn:aws:cognito-idp:us-east-1:000000000000:userpool/POOL_ID"
+    },
+    {
+      "Sid": "ReadTheTurnstileSecretOnly",
+      "Effect": "Allow",
+      "Action": "secretsmanager:GetSecretValue",
+      "Resource": "SECRET_ARN"
+    },
+    {
+      "Sid": "OwnLockoutTableOnly",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:DeleteItem"
+      ],
+      "Resource": "arn:aws:dynamodb:us-east-1:000000000000:table/LoginAttempts"
+    },
+    {
+      "Sid": "OwnLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:us-east-1:000000000000:log-group:/aws/lambda/auth-api*"
+    }
+  ]
+}

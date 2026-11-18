@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log in · OKR Tracker</title>
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="auth-wrap">
+    <h1>OKR Tracker</h1>
+    <p class="muted">Set yearly goals, measure them with key results, and check in every week.</p>
+
+    <div class="panel">
+        <div class="tabs" role="tablist">
+            <button type="button" role="tab" id="tab-login" aria-selected="true">Log in</button>
+            <button type="button" role="tab" id="tab-signup" aria-selected="false">Create account</button>
+        </div>
+
+        <form id="auth-form" class="auth-form" novalidate>
+            <label>Email
+                <input id="email" type="email" autocomplete="email" required maxlength="254">
+            </label>
+            <label>Password
+                <input id="password" type="password" autocomplete="current-password" required minlength="1" maxlength="128">
+            </label>
+            <p id="password-hint" class="muted hidden">At least 10 characters with upper case, lower case and a number.</p>
+            <!-- Cloudflare Turnstile: proves a person is using the form -->
+            <div id="turnstile"></div>
+            <div class="actions">
+                <button class="primary" type="submit" id="submit">Log in</button>
+            </div>
+            <p id="form-message" class="message" aria-live="polite"></p>
+        </form>
+    </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/session.js"></script>
+<script src="js/api.js"></script>
+<script src="js/login.js" defer></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileReady&render=explicit" defer></script>
+</body>
+</html>

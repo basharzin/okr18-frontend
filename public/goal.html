@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goal · OKR Tracker</title>
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="inner">
+        <a class="brand" href="goals.html">OKR Tracker</a>
+        <nav class="nav" aria-label="Main">
+            <a href="goals.html" aria-current="page">Goals</a>
+        </nav>
+        <button type="button" id="logout">Log out</button>
+    </div>
+</header>
+
+<main>
+    <p><a href="goals.html">← All goals</a></p>
+    <p id="page-message" class="message" aria-live="polite"></p>
+
+    <section id="goal-view" class="panel hidden" aria-labelledby="goal-title">
+        <div class="row" style="justify-content: space-between;">
+            <h1 id="goal-title"></h1>
+            <div class="row" id="goal-badges"></div>
+        </div>
+        <p id="goal-meta" class="meta"></p>
+        <p id="goal-description"></p>
+        <div id="goal-progress"></div>
+        <p id="goal-progress-label" class="progress-label"></p>
+        <p id="goal-health-note" class="muted"></p>
+        <p id="goal-abandon-reason" class="muted hidden"></p>
+
+        <div class="actions" id="goal-actions"></div>
+        <p id="action-message" class="message" aria-live="polite"></p>
+    </section>
+
+    <!-- Edit (rule G7: only Draft, Active, At risk) -->
+    <section id="edit-panel" class="panel hidden" aria-labelledby="edit-title">
+        <h2 id="edit-title">Edit goal</h2>
+        <form id="edit-form" novalidate>
+            <div class="form-grid">
+                <label class="wide">Title <input id="e-title" minlength="3" maxlength="80" required></label>
+                <label class="wide">Description <textarea id="e-description" maxlength="500"></textarea></label>
+                <label>Category
+                    <select id="e-category">
+                        <option>Health</option><option>Career</option><option>Learning</option>
+                        <option>Finance</option><option>Personal</option><option>Other</option>
+                    </select>
+                </label>
+                <label>Deadline <input id="e-deadline" type="date" required></label>
+            </div>
+            <p id="edit-message" class="message error" aria-live="polite"></p>
+            <div class="actions">
+                <button type="submit" class="primary" id="e-save">Save changes</button>
+                <button type="button" id="e-cancel">Cancel</button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Key results for this goal: built by the Key Results owner (Amr Shalaby) -->
+    <section id="key-results-panel" class="panel" aria-label="Key results"></section>
+</main>
+
+<dialog id="abandon-dialog" aria-labelledby="abandon-title">
+    <form id="abandon-form" method="dialog" novalidate>
+        <h2 id="abandon-title">Abandon this goal?</h2>
+        <label>Why are you stopping? (10 to 200 characters)
+            <textarea id="abandon-reason" minlength="10" maxlength="200" required></textarea>
+        </label>
+        <p class="muted">You can reopen an abandoned goal once, in the same year.</p>
+        <p id="abandon-message" class="message error" aria-live="polite"></p>
+        <div class="actions">
+            <button type="submit" class="danger" id="abandon-confirm">Abandon goal</button>
+            <button type="button" id="abandon-cancel">Keep it</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog id="delete-dialog" aria-labelledby="delete-title">
+    <h2 id="delete-title">Delete this goal?</h2>
+    <p>The goal and its key results are removed. This cannot be undone.</p>
+    <p id="delete-message" class="message error" aria-live="polite"></p>
+    <div class="actions">
+        <button type="button" class="danger" id="delete-confirm">Delete</button>
+        <button type="button" id="delete-cancel">Cancel</button>
+    </div>
+</dialog>
+
+<script src="js/config.js"></script>
+<script src="js/session.js"></script>
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/goal.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My goals · OKR Tracker</title>
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="inner">
+        <a class="brand" href="goals.html">OKR Tracker</a>
+        <nav class="nav" aria-label="Main">
+            <a href="goals.html" aria-current="page">Goals</a>
+        </nav>
+        <button type="button" id="logout">Log out</button>
+    </div>
+</header>
+
+<main>
+    <div class="row" style="justify-content: space-between;">
+        <h1>My goals</h1>
+        <button type="button" class="primary" id="new-goal">New goal</button>
+    </div>
+
+    <!-- Summary from GET /api/goals/summary -->
+    <section aria-label="Summary">
+        <div class="stats">
+            <div class="stat"><div class="num" id="stat-active">–</div><div class="lbl">Active</div></div>
+            <div class="stat"><div class="num" id="stat-draft">–</div><div class="lbl">Draft</div></div>
+            <div class="stat"><div class="num" id="stat-achieved">–</div><div class="lbl">Achieved</div></div>
+            <div class="stat"><div class="num" id="stat-average">–</div><div class="lbl">Average progress</div></div>
+        </div>
+    </section>
+
+    <section class="panel hidden" id="attention" aria-labelledby="attention-title">
+        <h2 id="attention-title">Needs attention</h2>
+        <ul id="attention-list"></ul>
+    </section>
+
+    <!-- Filters map to GET /api/goals?year=&status=&category= -->
+    <section class="filters" aria-label="Filters">
+        <label>Year <select id="filter-year"></select></label>
+        <label>Status
+            <select id="filter-status">
+                <option value="">All</option>
+                <option>Draft</option><option>Active</option><option value="AtRisk">At risk</option>
+                <option>Achieved</option><option>Abandoned</option>
+            </select>
+        </label>
+        <label>Category
+            <select id="filter-category">
+                <option value="">All</option>
+                <option>Health</option><option>Career</option><option>Learning</option>
+                <option>Finance</option><option>Personal</option><option>Other</option>
+            </select>
+        </label>
+    </section>
+
+    <p id="list-message" class="message" aria-live="polite"></p>
+    <section id="goal-list" class="goal-list" aria-label="Goals"></section>
+</main>
+
+<dialog id="goal-dialog" aria-labelledby="goal-dialog-title">
+    <form id="goal-form" method="dialog" novalidate>
+        <h2 id="goal-dialog-title">New goal</h2>
+        <div class="form-grid">
+            <label class="wide">Title
+                <input id="g-title" required minlength="3" maxlength="80" placeholder="Run a 10k race">
+            </label>
+            <label class="wide">Description (optional)
+                <textarea id="g-description" maxlength="500"></textarea>
+            </label>
+            <label>Category
+                <select id="g-category">
+                    <option>Health</option><option>Career</option><option>Learning</option>
+                    <option>Finance</option><option>Personal</option><option>Other</option>
+                </select>
+            </label>
+            <label>Year <select id="g-year"></select></label>
+            <label class="wide">Deadline
+                <input id="g-deadline" type="date" required>
+            </label>
+        </div>
+        <p id="goal-form-message" class="message error" aria-live="polite"></p>
+        <div class="actions">
+            <button type="submit" class="primary" id="g-save">Create goal</button>
+            <button type="button" id="g-cancel">Cancel</button>
+        </div>
+    </form>
+</dialog>
+
+<script src="js/config.js"></script>
+<script src="js/session.js"></script>
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/goals.js" defer></script>
+</body>
+</html>

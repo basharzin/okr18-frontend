@@ -1,0 +1,9 @@
+node_modules/
+.env
+*.zip
+out/
+infra/okr18-vars.sh
+.DS_Store
+Thumbs.db
+
+public/js/config.js

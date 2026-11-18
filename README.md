@@ -31,6 +31,24 @@ npx serve public -l 8080           # then open http://localhost:8080
 Then each service repo deploys itself (`bash scripts/deploy.sh`), reading `../okr18-frontend/infra/okr18-vars.sh`.
 Keep the four repos side by side in one folder so that path works.
 
+## The four repositories
+
+| Repo | Owner |
+| --- | --- |
+| [okr18-frontend](https://github.com/basharzin/okr18-frontend) | Bashar Zain |
+| [okr18-goals-service](https://github.com/basharzin/okr18-goals-service) | Bashar Zain |
+| okr18-keyresults-service (link to add) | Amr Shalaby |
+| okr18-checkins-service (link to add) | Amr Hosni |
+
+They are separate repos but ONE app at run time: every service is deployed into the same Floci
+(same Cognito, same API Gateway `okr18-api`, same SNS topic `okr-events`). Services never import each
+other's code; they meet only through the names in the API contracts (routes, Lambda function names,
+event types). To run everything on one PC, clone the four repos side by side and run:
+
+```
+bash infra/deploy-all.sh
+```
+
 ## Secrets
 
 The only secret is the Turnstile secret key. `shared-setup.sh` asks for it once (hidden input) and stores it in

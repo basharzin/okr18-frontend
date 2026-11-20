@@ -123,7 +123,24 @@ invoke `kr-internal` and `goals-internal`, your logs. `admin-api` gets its own r
 **Frontend:** check-in form and history, weekly banner, stalled page, admin pages.
 **Security tests:** ST4 (role), ST7 (stored XSS), ST11 (upload limits), ST12 (failures visible on the admin page). Report lead.
 
-## 6. Making yourself admin (for testing)
+## 6. Working on okr18-frontend (pages and shared layout)
+
+Your service lives in your own repo. Your pages (and Amr Shalaby's shared layout) live in `okr18-frontend`,
+so Bashar adds you as a collaborator. Work on your own branch and open a pull request, so the commits show your name:
+
+```
+cd okr18-frontend
+git checkout -b keyresults-pages        # or checkins-pages
+# ... your changes in public/ ...
+git add public
+git commit -m "Key results panel on the goal page"
+git push -u origin keyresults-pages
+```
+Then on GitHub: Compare & pull request. Bashar merges it. Before starting again: `git checkout main && git pull`.
+
+When your service repo has its first push, send its link in the group so it is added to the README.
+
+## 7. Making yourself admin (for testing)
 
 ```
 source infra/okr18-vars.sh

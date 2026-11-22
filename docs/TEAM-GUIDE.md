@@ -10,18 +10,19 @@ are in the design doc; this page is the **names and shapes** that must match exa
 | --- | --- |
 | [okr18-frontend](https://github.com/basharzin/okr18-frontend) | Bashar Zain |
 | [okr18-goals-service](https://github.com/basharzin/okr18-goals-service) | Bashar Zain |
-| okr18-keyresults-service (your own GitHub account) | Amr Shalaby |
-| okr18-checkins-service (your own GitHub account) | Amr Hosni |
+| [okr18-keyresults-service](https://github.com/amr223481/okr18-keyresults-service) | Amr Shalaby |
+| [okr18-checkins-service](https://github.com/Ol4F-Aj/okr18-checkins-service) | Amr Hosni |
 
 ## 1. Set up once (Git Bash, Docker Desktop running)
 
 You need what the Lab 7 Installation Guide installs: Docker Desktop, Git Bash, AWS CLI and the `floci` profile.
 
 ```
-mkdir team18 && cd team18
+mkdir -p /c/team18 && cd /c/team18      # NOT inside OneDrive: it freezes on node_modules
 git clone https://github.com/basharzin/okr18-frontend.git
 git clone https://github.com/basharzin/okr18-goals-service.git
-# put YOUR repo here too, next to these two
+git clone https://github.com/amr223481/okr18-keyresults-service.git
+git clone https://github.com/Ol4F-Aj/okr18-checkins-service.git
 
 cd okr18-frontend
 docker compose -f infra/floci/docker-compose.yml up -d

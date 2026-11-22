@@ -6,7 +6,9 @@ Team 18 OKR Tracker: the website and the shared platform every service uses.
 | --- | --- | --- |
 | `infra/floci/` | Floci (local AWS) for the whole team | Bashar |
 | `infra/tools/check-floci.js` | Task 5: which AWS features Floci supports (PASS / PARTIAL / FAIL) | Bashar |
-| `infra/shared-setup.sh` | Cognito pool and groups, SNS topic `okr-events`, Turnstile secret in Secrets Manager, API Gateway `okr18-api` with JWT authorizer and throttling | Bashar |
+| `infra/tools/security-tests.js` | Security tests ST1, ST2, ST3, ST5, ST8 against the running app (`npm run security`) | Bashar |
+| `infra/tools/evidence.js` | Report evidence: security events in CloudWatch Logs, no secrets in logs, GoalsAtRisk metric, IAM least privilege (`npm run evidence`) | Bashar |
+| `infra/shared-setup.sh` | Cognito pool and groups, SNS topic `okr-events`, Turnstile secret in Secrets Manager, API Gateway `okr18-api` with throttling (each Lambda checks the Cognito token itself, because Floci's JWT authorizer rejects valid tokens) | Bashar |
 | `platform/auth-service/` | Sign-up, login, logout, me (Cognito + Turnstile) | Bashar |
 | `public/` | Pages. Login and Goals pages done (Bashar); layout, nav and `api.js` are the shared layout task (Amr Shalaby); Key Results and Check-ins pages by their owners | all |
 
@@ -37,8 +39,8 @@ Keep the four repos side by side in one folder so that path works.
 | --- | --- |
 | [okr18-frontend](https://github.com/basharzin/okr18-frontend) | Bashar Zain |
 | [okr18-goals-service](https://github.com/basharzin/okr18-goals-service) | Bashar Zain |
-| okr18-keyresults-service (link to add) | Amr Shalaby |
-| okr18-checkins-service (link to add) | Amr Hosni |
+| [okr18-keyresults-service](https://github.com/amr223481/okr18-keyresults-service) | Amr Shalaby |
+| [okr18-checkins-service](https://github.com/Ol4F-Aj/okr18-checkins-service) | Amr Hosni |
 
 They are separate repos but ONE app at run time: every service is deployed into the same Floci
 (same Cognito, same API Gateway `okr18-api`, same SNS topic `okr-events`). Services never import each
@@ -56,3 +58,17 @@ Secrets Manager; the auth Lambda reads it with its own IAM permission. `infra/ok
 addresses only and is still kept out of Git. The site key (public) goes in the frontend config.
 
 For Floci, pressing Enter uses Cloudflare's published test secret that always passes. Never use it on a real site.
+
+## Security tests and evidence (for the report)
+
+After `bash infra/deploy-all.sh`, with Floci running:
+
+```
+cd infra/tools
+npm install
+npm run security     # ST1, ST2, ST3, ST5, ST8: Expected / Actual / PASS for each check
+npm run evidence     # CloudWatch security events, no secrets in logs, GoalsAtRisk metric, IAM least privilege
+```
+
+Both make their own test users and delete them at the end. INFO lines are things Floci does not
+enforce (API throttling, and Turnstile when Cloudflare's test secret is used); the report shows them as configuration.

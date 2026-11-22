@@ -58,6 +58,7 @@ Take the structure, write your own code and rules:
 | `src/<name>Repo.js` | the only file that talks to your DynamoDB table |
 | `src/createApp.js`, `app.js`, `handlers/api.js` | Express app; Lambda handler via `serverless-http@4` (v3 loses POST bodies) |
 | `src/auth.js` | **copy it unchanged from Goals**: Floci's gateway authorizer rejects valid tokens, so every Lambda checks the Cognito token itself |
+| `src/protect.js` | **copy it unchanged from Goals** (Lab 8): security headers on every answer and a per-IP rate limit (60 requests a minute, then 429). In `createApp.js`: `app.use(securityHeaders)`, then `cors`, then `app.use(rateLimit({ service: '<yours>' }))` |
 | `scripts/deploy.sh`, `scripts/zip-lambda.js` | create/update table, role, Lambdas, routes. Copy the `write_env` and `add_route` helpers: env vars go as a JSON file because `CORS_ORIGINS` contains a comma |
 | `infra/iam/*.json` | least privilege: your table, your queue, only the functions you call |
 | `events/` | saved Lambda events to test without the website |

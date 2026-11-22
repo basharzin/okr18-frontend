@@ -9,6 +9,7 @@ const express = require('express');
 const cors = require('cors');
 const { requireUser } = require('./tokens');
 const { BotCheckUnavailable } = require('./turnstile');
+const { securityHeaders, rateLimit } = require('./protect');
 
 const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/;
 
@@ -31,7 +32,7 @@ function checkCredentials(body, { signUp }) {
     return { email, password };
 }
 
-function createApp({ cognito, turnstile, verify, attempts, allowedOrigins = [] }) {
+function createApp({ cognito, turnstile, verify, attempts, allowedOrigins = [], rateLimitMax }) {
     const app = express();
     app.disable('x-powered-by');
     app.use((req, res, next) => {
@@ -39,7 +40,9 @@ function createApp({ cognito, turnstile, verify, attempts, allowedOrigins = [] }
         res.on('finish', () => console.log(JSON.stringify({ service: 'auth', method: req.method, path: req.originalUrl.split('?')[0], status: res.statusCode, ms: Date.now() - start })));
         next();
     });
-    app.use(cors({ origin: allowedOrigins }));
+    app.use(securityHeaders);                                        // on every answer, errors too
+    app.use(cors({ origin: allowedOrigins }));                       // answers the browser's OPTIONS preflight itself
+    app.use(rateLimit({ max: rateLimitMax, service: 'auth' }));      // 429 after the limit (per IP, 60 s)
     app.use((req, res, next) => (req.method === 'POST' && req.path !== '/api/auth/logout' && !req.is('application/json')
         ? sendError(res, 415, 'UNSUPPORTED_MEDIA_TYPE', 'Send the body as application/json.') : next()));
     app.use(express.json({ limit: '4kb' }));

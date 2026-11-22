@@ -43,7 +43,8 @@ write_env() {   # KEY=VALUE ...  ->  out/env.json
 }
 write_env NODE_ENV=production "COGNITO_USER_POOL_ID=$COGNITO_USER_POOL_ID" "COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID" \
   "COGNITO_ISSUER=$COGNITO_ISSUER" "COGNITO_JWKS_URI=$COGNITO_JWKS_URI" "ALLOW_HTTP_JWKS=${ALLOW_HTTP_JWKS:-true}" \
-  "TURNSTILE_SECRET_ARN=$TURNSTILE_SECRET_ARN" LOGIN_ATTEMPTS_TABLE=LoginAttempts "CORS_ORIGINS=$CORS_ORIGINS"
+  "TURNSTILE_SECRET_ARN=$TURNSTILE_SECRET_ARN" LOGIN_ATTEMPTS_TABLE=LoginAttempts "CORS_ORIGINS=$CORS_ORIGINS" \
+  "RATE_LIMIT_MAX=${RATE_LIMIT_MAX:-60}"   # requests per IP per minute; raise only for a load test
 if aws lambda get-function --function-name $FN > /dev/null 2>&1; then
   aws lambda update-function-code --function-name $FN --zip-file fileb://lambda.zip > /dev/null
   aws lambda wait function-updated-v2 --function-name $FN

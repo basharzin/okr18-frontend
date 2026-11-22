@@ -1,5 +1,6 @@
 // ---------------------------------------------------------------
 // Security tests ST1, ST2, ST3, ST5 and ST8 (design doc, section "Security tests"),
+// plus the Lab 8 layers: security headers (SH) and the per-IP rate limit (ST5c),
 // run against the real app on Floci. Prints Expected / Actual / PASS or FAIL
 // for each check, so one screenshot is the evidence for the report.
 //
@@ -62,7 +63,7 @@ async function call(method, route, { token, body, raw, headers = {} } = {}) {
     const res = await fetch(`${API}${route}`, { method, headers: h, body: payload });
     let json = null;
     try { json = await res.json(); } catch { /* empty or not JSON */ }
-    return { status: res.status, json, retryAfter: res.headers.get('retry-after') };
+    return { status: res.status, json, retryAfter: res.headers.get('retry-after'), headers: res.headers };
 }
 
 async function makeUser(label) {
@@ -215,12 +216,44 @@ async function st5(a) {
     r = await call('POST', '/api/goals', { token: a.access, raw: 'title=hello', headers: { 'content-type': 'application/x-www-form-urlencoded' } });
     record('ST5b', 'POST /api/goals with a form body instead of JSON', '415', r.status, r.status === 415);
 
-    const started = Date.now();
-    const statuses = await Promise.all(Array.from({ length: 50 }, () => call('GET', '/api/goals/health').then((x) => x.status, () => 'error')));
-    const counts = statuses.reduce((m, s) => ({ ...m, [s]: (m[s] || 0) + 1 }), {});
-    record('ST5c', `50 requests at once (${Date.now() - started} ms)`,
-        'some 429 on real AWS (throttling 10/s, burst 20). Floci accepts the setting but does not enforce it',
-        JSON.stringify(counts), false, true);
+}
+
+// Lab 8: the headers that tell the browser how to treat our answers
+async function headers() {
+    console.log('\n== SH   Security headers (Lab 8, S1)');
+    const want = { 'x-content-type-options': 'nosniff', 'x-frame-options': 'DENY' };
+    const check = (id, what, h) => {
+        const missing = Object.entries(want).filter(([k, v]) => h.get(k) !== v).map(([k]) => k);
+        const csp = h.get('content-security-policy') || '';
+        if (!csp) missing.push('content-security-policy');
+        record(id, what, 'nosniff, X-Frame-Options DENY, a Content-Security-Policy',
+            missing.length ? `missing: ${missing.join(', ')}` : `all present (CSP: ${csp.slice(0, 60)}${csp.length > 60 ? '...' : ''})`, missing.length === 0);
+    };
+    check('SH1', 'Goals API answer (401 without a token)', (await call('GET', '/api/goals')).headers);
+    check('SH2', 'Auth API answer (403 for a login without the bot check)', (await call('POST', '/api/auth/login', { body: {} })).headers);
+    try {
+        const site = await fetch('http://localhost:8080/login.html');
+        check('SH3', 'Website page login.html (npx serve public -l 8080)', site.headers);
+    } catch {
+        record('SH3', 'Website page login.html', 'headers from public/serve.json', 'site not running: start npx serve public -l 8080 and run again', false, true);
+    }
+}
+
+// Lab 8, S2 and S3: run LAST (after the clean-up): it uses up this IP's allowance for 60 seconds
+async function rateLimitTest() {
+    console.log('\n== ST5c Rate limit per IP (Lab 8, S2 and S3)');
+    const seen = {};
+    let first429 = 0;
+    for (let i = 1; i <= 80; i += 1) {
+        const r = await call('GET', '/api/goals/health');
+        seen[r.status] = (seen[r.status] || 0) + 1;
+        if (r.status === 429 && !first429) first429 = i;
+    }
+    record('ST5c', '80 quick requests from one IP', '200 until this IP reaches 60 requests in the last minute, then 429 RATE_LIMITED',
+        `${JSON.stringify(seen)} (first 429 at request ${first429 || 'never'})`, Boolean(first429));
+    const faked = await call('GET', '/api/goals/health', { headers: { 'x-forwarded-for': '9.9.9.9' } });
+    record('ST5d', 'Same, with a fake X-Forwarded-For header', 'still 429: the IP comes from API Gateway, not the header',
+        `${faked.status}, Retry-After ${faked.retryAfter || '-'}`, faked.status === 429);
 }
 
 async function st8(testSecret) {
@@ -253,7 +286,13 @@ async function st8(testSecret) {
 async function main() {
     console.log(`OKR18 security tests  ${new Date().toISOString()}`);
     console.log(`API ${API}\n`);
-    const health = await call('GET', '/api/goals/health').catch(() => null);
+    let health = await call('GET', '/api/goals/health').catch(() => null);
+    if (health && health.status === 429) {   // a run less than a minute ago used up the allowance
+        const wait = Number(health.retryAfter || 60) + 2;
+        console.log(`Rate limit from the previous run: waiting ${wait} seconds...`);
+        await new Promise((r) => setTimeout(r, wait * 1000));
+        health = await call('GET', '/api/goals/health').catch(() => null);
+    }
     if (!health || health.status !== 200) {
         console.error('The Goals API is not answering. Is Floci running, and did bash infra/deploy-all.sh finish?');
         process.exit(1);
@@ -277,14 +316,17 @@ async function main() {
         await st3(a, b);
         await st5(a);
         await st8(testSecret);
+        await headers();
     } finally {
         console.log('\nCleaning up test users and data...');
         for (const undo of cleanup.reverse()) { try { await undo(); } catch { /* already gone */ } }
     }
+    await rateLimitTest();
 
     const n = (s) => results.filter((r) => r.status === s).length;
     console.log(`\nSummary: ${n('PASS')} PASS, ${n('FAIL')} FAIL, ${n('INFO')} INFO`);
     console.log('INFO = cannot be proven on Floci; shown as configuration in the report.');
+    console.log('The rate limit is now used up for 60 seconds: wait a minute before using the website or running this again.');
     if (n('FAIL')) process.exitCode = 1;
 }
 

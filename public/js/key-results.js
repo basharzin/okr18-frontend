@@ -35,7 +35,7 @@
             buttons.push(edit, del);
         }
         return el('li', { className: 'kr-card' }, [
-            el('div', { className: 'row', attrs: { style: 'justify-content: space-between;' } }, [
+            el('div', { className: 'row spread' }, [
                 el('h3', { text: kr.title }),
                 el('span', { className: `badge ${kr.status === 'Completed' ? 'Done' : kr.status === 'Frozen' ? 'Abandoned' : 'Active'}`, text: kr.status })
             ]),
@@ -59,7 +59,7 @@
 
     function render() {
         const krs = data.keyResults;
-        const header = el('div', { className: 'row', attrs: { style: 'justify-content: space-between;' } }, [
+        const header = el('div', { className: 'row spread' }, [
             el('h2', { text: 'Key results' }),
             el('span', { className: 'muted', text: `${krs.length} of ${data.maxKeyResults} · goal progress ${data.progress}%` })
         ]);

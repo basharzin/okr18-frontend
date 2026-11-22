@@ -66,9 +66,11 @@ After `bash infra/deploy-all.sh`, with Floci running:
 ```
 cd infra/tools
 npm install
-npm run security     # ST1, ST2, ST3, ST5, ST8: Expected / Actual / PASS for each check
+npm run security     # ST1, ST2, ST3, ST5, ST8, security headers, rate limit: Expected / Actual / PASS
 npm run evidence     # CloudWatch security events, no secrets in logs, GoalsAtRisk metric, IAM least privilege
 ```
 
-Both make their own test users and delete them at the end. INFO lines are things Floci does not
+Both make their own test users and delete them at the end. `npm run security` ends by using up
+your IP's rate limit (60 requests a minute), so wait a minute before using the website again.
+The website's own security headers (CSP and others) are in `public/serve.json`; run `npx serve public -l 8080` before the tests to check them too. INFO lines are things Floci does not
 enforce (API throttling, and Turnstile when Cloudflare's test secret is used); the report shows them as configuration.

@@ -76,6 +76,7 @@ textarea { resize: vertical; min-height: 4.5rem; }
 .goal-card h3 a { color: var(--text); text-decoration: none; }
 .goal-card h3 a:hover { text-decoration: underline; }
 .row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.row.spread { justify-content: space-between; }   /* instead of style="": the CSP allows no inline styles */
 .meta { color: var(--muted); font-size: 0.88rem; }
 
 .badge { font-size: 0.78rem; font-weight: 600; padding: 0.1rem 0.55rem; border-radius: 999px; background: var(--info-bg); color: var(--brand-dark); }

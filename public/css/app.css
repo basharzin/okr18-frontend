@@ -92,6 +92,13 @@ textarea { resize: vertical; min-height: 4.5rem; }
 
 .empty { text-align: center; padding: 2rem 1rem; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--radius); background: var(--surface); }
 
+/* key-results panel (Key Results Service) */
+.kr-list { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: 0.75rem; }
+.kr-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 0.9rem 1rem; display: grid; gap: 0.4rem; }
+.kr-card h3 { margin: 0; font-size: 1rem; }
+.kr-form { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); display: grid; gap: 0.75rem; }
+.kr-form h3 { margin: 0; font-size: 1rem; }
+
 /* login */
 .auth-wrap { max-width: 420px; margin: 3rem auto; padding: 0 1rem; }
 .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }

@@ -77,6 +77,7 @@ if (Session.require()) {
             goal = await api(`/api/goals/${encodeURIComponent(id)}/transitions`, { method: 'POST', body: reason ? { to, reason } : { to } });
             render();
             say(actionMessage, `Goal is now ${LABELS[goal.status]}.`, 'ok');
+            window.dispatchEvent(new Event('goal-changed'));
             return true;
         } catch (error) {
             say(actionMessage, error.status === 503 ? 'Key Results is not answering, so this cannot be checked yet. Try again shortly.' : error.message);
@@ -153,11 +154,11 @@ if (Session.require()) {
         }
     });
 
-    // Placeholder until the Key Results panel exists (it loads its own data from the KR API)
-    document.querySelector('#key-results-panel').replaceChildren(
-        el('h2', { text: 'Key results' }),
-        el('p', { className: 'muted', text: 'The key-results panel is part of the Key Results Service and will load here.' })
-    );
+    // The key-results panel (js/key-results.js) loads its own data from the Key Results API.
+    // The two parts tell each other when something changed:
+    //   key results changed -> reload the goal (its progress bar)
+    //   goal changed        -> the panel reloads (which buttons it may show)
+    window.addEventListener('key-results-changed', load);
 
     load();
 }

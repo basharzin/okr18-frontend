@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin · OKR Tracker</title>
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="inner">
+        <a class="brand" href="goals.html">OKR Tracker</a>
+        <nav class="nav" aria-label="Main">
+            <a href="goals.html">Goals</a>
+            <a href="admin.html" aria-current="page">Admin</a>
+        </nav>
+        <button type="button" id="logout">Log out</button>
+    </div>
+</header>
+
+<!-- Admin page: built by the Check-ins owner (Amr Hosni). The API decides who gets in (403 otherwise). -->
+<main>
+    <section id="admin-panel" class="panel" aria-labelledby="admin-title">
+        <div class="row spread">
+            <h1 id="admin-title">Accounts</h1>
+            <span id="admin-count" class="muted"></span>
+        </div>
+        <p class="muted">Admins see accounts only, never anyone's goals, key results or check-ins.</p>
+        <p id="admin-message" class="message" aria-live="polite">Loading...</p>
+        <div id="admin-users"></div>
+    </section>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/session.js"></script>
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/admin.js" defer></script>
+</body>
+</html>

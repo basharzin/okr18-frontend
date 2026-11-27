@@ -115,6 +115,36 @@
         window.dispatchEvent(new Event('goal-changed'));
     }
 
+    // ---------- undo (rule C3) ----------
+    // Only on my newest check-in, only within 24 hours, only while the goal is open.
+    // The API checks all of this again and answers 409 otherwise.
+    const UNDO_MS = 24 * 60 * 60 * 1000;
+    function undoButton(kr, c) {
+        if (!OPEN.includes(data.goalStatus) || Date.now() - new Date(c.createdAt).getTime() > UNDO_MS) return null;
+        const btn = el('button', { text: 'Undo', className: 'danger', attrs: { type: 'button' } });
+        btn.addEventListener('click', async () => {
+            // Ask once more on the same button, like Delete in the key-results panel
+            if (!btn.dataset.armed) {
+                btn.dataset.armed = '1';
+                btn.textContent = `Click again to undo (back to ${shown(kr, c.previousValue)})`;
+                setTimeout(() => { delete btn.dataset.armed; btn.textContent = 'Undo'; }, 4000);
+                return;
+            }
+            btn.disabled = true;
+            say(message, 'Undoing...', 'ok');
+            try {
+                await api(`/api/check-ins/${encodeURIComponent(c.checkInId)}`, { method: 'DELETE' });
+                say(message, `Check-in undone: back to ${shown(kr, c.previousValue)}.`, 'ok');
+                await loadHistory();
+                waitForKeyResult(kr.krId, c.previousValue);
+            } catch (err) {
+                btn.disabled = false;
+                say(message, err.status === 503 ? 'Key Results or Goals is not answering, so nothing was undone. Try again shortly.' : errorText(err));
+            }
+        });
+        return el('div', { className: 'actions' }, [btn]);
+    }
+
     // ---------- history ----------
     async function loadHistory() {
         const kr = chosenKr();
@@ -126,12 +156,13 @@
                 history.replaceChildren(heading, el('p', { className: 'empty', text: 'No check-ins yet for this key result.' }));
                 return;
             }
-            history.replaceChildren(heading, el('ul', { className: 'ci-list' }, list.map((c) => el('li', { className: 'ci-item' }, [
+            history.replaceChildren(heading, el('ul', { className: 'ci-list' }, list.map((c, i) => el('li', { className: 'ci-item' }, [
                 el('div', { className: 'row spread' }, [
                     el('strong', { text: `${shown(kr, c.previousValue)} → ${shown(kr, c.value)}` }),
                     el('span', { className: 'meta', text: when(c.createdAt) })
                 ]),
-                c.note ? el('p', { className: 'ci-note', text: c.note }) : null
+                c.note ? el('p', { className: 'ci-note', text: c.note }) : null,
+                i === 0 ? undoButton(kr, c) : null
             ]))));
         } catch (err) {
             history.replaceChildren(el('p', { className: 'message error', text: err.status === 503 ? 'Check-ins is not answering. Try again shortly.' : err.message }));

@@ -40,4 +40,8 @@ done
 
 echo "== Website config"
 (cd "$ROOT" && bash infra/write-config.sh)
-echo "Done. Serve the site:  npx serve public -l 8080   then open http://localhost:8080"
+
+echo "== Website on S3"
+(cd "$ROOT" && bash infra/deploy-site.sh)
+echo "Done. Open the deployed site: http://localhost:4566/${SITE_BUCKET:-okr18-web}/index.html"
+echo "(While editing pages you can also run: npx serve public -l 8080)"

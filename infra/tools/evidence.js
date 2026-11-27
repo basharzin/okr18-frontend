@@ -3,6 +3,7 @@
 //   1. Security events in CloudWatch Logs (run security-tests.js first, so there are some)
 //   2. The logs hold no passwords, tokens or email addresses
 //   3. The GoalsAtRisk metric written by the daily health scan
+//   3b. The FailedLogins metric and the okr18-failed-logins alarm (repeated failed logins)
 //   4. Each Lambda role can reach its own table and not the others (ST10 style)
 //
 // Run from okr18-frontend/infra/tools in Git Bash, after deploy-all and npm run security:
@@ -13,7 +14,7 @@
 if (!process.env.AWS_PROFILE && !process.env.AWS_ACCESS_KEY_ID) process.env.AWS_PROFILE = 'floci';
 
 const { CloudWatchLogsClient, DescribeLogStreamsCommand, GetLogEventsCommand, FilterLogEventsCommand } = require('@aws-sdk/client-cloudwatch-logs');
-const { CloudWatchClient, ListMetricsCommand, GetMetricStatisticsCommand } = require('@aws-sdk/client-cloudwatch');
+const { CloudWatchClient, ListMetricsCommand, GetMetricStatisticsCommand, DescribeAlarmsCommand } = require('@aws-sdk/client-cloudwatch');
 const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda');
 const { IAMClient, ListRolePoliciesCommand, GetRolePolicyCommand } = require('@aws-sdk/client-iam');
 
@@ -95,6 +96,7 @@ async function checkLogs() {
     console.log(`\n== Monitoring: CloudWatch Logs (last ${HOURS} hours)`);
     const counts = {};
     const samples = {};
+    const audit = {};
     const leaks = { 'JWT token': 0, 'Bearer header': 0, 'password field': 0, 'email address': 0, 'Turnstile token': 0 };
     const leakExamples = [];
     let total = 0;
@@ -118,6 +120,7 @@ async function checkLogs() {
             if (found.length && leakExamples.length < 3) leakExamples.push(`${fn}: ${found.join(', ')}`);
 
             const j = parse(line);
+            if (j && j.audit) audit[j.audit] = (audit[j.audit] || 0) + 1;
             if (j && j.security) {
                 const key = `${fn}  ${j.security}`;
                 counts[key] = (counts[key] || 0) + 1;
@@ -143,6 +146,10 @@ async function checkLogs() {
     const missing = want.filter((t) => !types.has(t));
     record('LOG1', 'Security events are written to CloudWatch Logs', want.join(', '),
         missing.length ? `missing: ${missing.join(', ')} (run npm run security first)` : 'all four found', missing.length === 0);
+
+    const auditList = Object.entries(audit).map(([k, v]) => `${k} ${v}`).join(', ');
+    record('LOG3', 'Audit trail: every goal state change and delete is logged (who, which goal)', 'audit lines in goals-api',
+        auditList || 'none yet (change a goal state in the website, then run again)', !!auditList, !auditList);
 
     const leakTotal = Object.values(leaks).reduce((a, b) => a + b, 0);
     record('LOG2', 'Logs hold no tokens, passwords or email addresses', '0 lines',
@@ -178,6 +185,34 @@ async function checkMetric() {
     } catch (e) {
         record('MET1', 'Health scan writes the GoalsAtRisk metric', 'metric listed with a datapoint',
             `Floci answered ${e.name}; the scan's log line above carries the same number`, false, true);
+    }
+}
+
+// ---------- 3b: failed-login metric and alarm ----------
+async function checkLoginAlarm() {
+    console.log('\n== Monitoring: CloudWatch metric OKR18/Auth FailedLogins and its alarm');
+    try {
+        const stats = await cw.send(new GetMetricStatisticsCommand({
+            Namespace: 'OKR18/Auth', MetricName: 'FailedLogins',
+            StartTime: new Date(Date.now() - HOURS * 3600 * 1000), EndTime: new Date(Date.now() + 60 * 1000),
+            Period: 300, Statistics: ['Sum']
+        }));
+        const points = stats.Datapoints || [];
+        const total = points.reduce((a, p) => a + (p.Sum || 0), 0);
+        const worst = points.reduce((a, p) => Math.max(a, p.Sum || 0), 0);
+        record('MET2', 'Auth counts failed logins (metric FailedLogins)', 'datapoints after npm run security',
+            `${total} failed logins in the last ${HOURS} h; worst 5 minutes: ${worst}`, total > 0);
+    } catch (e) {
+        record('MET2', 'Auth counts failed logins (metric FailedLogins)', 'datapoints', `Floci answered ${e.name}`, false, true);
+    }
+    try {
+        const out = await cw.send(new DescribeAlarmsCommand({ AlarmNames: ['okr18-failed-logins'] }));
+        const a = (out.MetricAlarms || [])[0];
+        record('MET3', 'Alarm okr18-failed-logins (5 or more failed logins in 5 minutes)', 'alarm exists',
+            a ? `${a.AlarmName}: ${a.MetricName} ${a.Statistic} >= ${a.Threshold} per ${a.Period}s, state ${a.StateValue || '-'}` : 'not found (run deploy-all again)',
+            !!a);
+    } catch (e) {
+        record('MET3', 'Alarm okr18-failed-logins', 'alarm exists', `Floci answered ${e.name} (alarms may not be emulated)`, false, true);
     }
 }
 
@@ -255,7 +290,7 @@ async function checkIam() {
         }
     }
     record(`IAM${n + 1}`, 'No role has Action "*" or Resource "*" (except where AWS needs it, narrowed by a Condition)', 'none',
-        wildcard.length ? wildcard.join('; ') : `none${narrowed.length ? ` (allowed with a Condition: ${narrowed.join('; ')} limited to namespace OKR18/Goals)` : ''}`,
+        wildcard.length ? wildcard.join('; ') : `none${narrowed.length ? ` (allowed with a Condition: ${narrowed.join('; ')} each limited to its own OKR18 namespace)` : ''}`,
         wildcard.length === 0);
 }
 
@@ -263,6 +298,7 @@ async function main() {
     console.log(`OKR18 evidence  ${new Date().toISOString()}`);
     await checkLogs();
     await checkMetric();
+    await checkLoginAlarm();
     await checkIam();
     const c = (s) => results.filter((r) => r === s).length;
     console.log(`\nSummary: ${c('PASS')} PASS, ${c('FAIL')} FAIL, ${c('INFO')} INFO`);

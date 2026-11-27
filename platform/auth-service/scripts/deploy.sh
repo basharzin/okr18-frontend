@@ -14,7 +14,7 @@ ROLE=auth-role
 FN=auth-api
 mkdir -p out
 
-echo "0/4 DynamoDB table LoginAttempts (account lockout, rows expire by TTL)"
+echo "0/5 DynamoDB table LoginAttempts (account lockout, rows expire by TTL)"
 if ! aws dynamodb describe-table --table-name LoginAttempts > /dev/null 2>&1; then
   aws dynamodb create-table --table-name LoginAttempts \
     --attribute-definitions AttributeName=id,AttributeType=S --key-schema AttributeName=id,KeyType=HASH \
@@ -24,18 +24,18 @@ if ! aws dynamodb describe-table --table-name LoginAttempts > /dev/null 2>&1; th
     --time-to-live-specification Enabled=true,AttributeName=ttl > /dev/null 2>&1 || true
 fi
 
-echo "1/4 IAM: $ROLE (confirm and group users in our pool, read the Turnstile secret, its lockout table, own logs)"
+echo "1/5 IAM: $ROLE (confirm and group users in our pool, read the Turnstile secret, its lockout table, own logs)"
 aws iam get-role --role-name $ROLE > /dev/null 2>&1 || \
   aws iam create-role --role-name $ROLE --assume-role-policy-document file://infra/iam/trust-policy.json > /dev/null
 sed "s#POOL_ID#$COGNITO_USER_POOL_ID#; s#SECRET_ARN#$TURNSTILE_SECRET_ARN#; s/000000000000/$ACCOUNT/g; s/us-east-1/$REGION/g" \
   infra/iam/auth-policy.json > out/auth-policy.json
 aws iam put-role-policy --role-name $ROLE --policy-name auth-access --policy-document file://out/auth-policy.json
 
-echo "2/4 Install and zip"
+echo "2/5 Install and zip"
 npm install --omit=dev --no-audit --no-fund --loglevel=error
 npm run zip --silent
 
-echo "3/4 Lambda $FN"
+echo "3/5 Lambda $FN"
 # Lambda environment variables as a JSON file: the CLI's short form breaks on values that
 # contain commas (CORS_ORIGINS has two addresses), JSON does not.
 write_env() {   # KEY=VALUE ...  ->  out/env.json
@@ -58,7 +58,7 @@ aws lambda wait function-active-v2 --function-name $FN
 aws logs create-log-group --log-group-name "/aws/lambda/$FN" > /dev/null 2>&1 || true
 aws logs put-retention-policy --log-group-name "/aws/lambda/$FN" --retention-in-days 7 > /dev/null 2>&1 || true
 
-echo "4/4 Routes on okr18-api"
+echo "4/5 Routes on okr18-api"
 FN_ARN="arn:aws:lambda:$REGION:$ACCOUNT:function:$FN"
 INTEGRATION_ID=$(aws apigatewayv2 get-integrations --api-id "$API_ID" --query "Items[?IntegrationUri=='$FN_ARN'].IntegrationId | [0]" --output text)
 if [ "$INTEGRATION_ID" = "None" ] || [ -z "$INTEGRATION_ID" ]; then
@@ -86,5 +86,21 @@ add_route "OPTIONS /api/auth/logout" no
 add_route "OPTIONS /api/auth/me" no
 aws lambda add-permission --function-name $FN --statement-id apigw-invoke-auth --action lambda:InvokeFunction \
   --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:$REGION:$ACCOUNT:$API_ID/*" > /dev/null 2>&1 || true
+
+echo "5/5 Alarm on failed logins, and shorter tokens"
+# 5 or more failed or locked logins in 5 minutes puts the alarm in ALARM (threat T1, section 11)
+aws cloudwatch put-metric-alarm --alarm-name okr18-failed-logins \
+  --alarm-description "5 or more failed logins in 5 minutes: possible password guessing" \
+  --namespace OKR18/Auth --metric-name FailedLogins --statistic Sum --period 300 --evaluation-periods 1 \
+  --threshold 5 --comparison-operator GreaterThanOrEqualToThreshold --treat-missing-data notBreaching \
+  > /dev/null 2>&1 && echo "   alarm okr18-failed-logins ready" || echo "   alarm not supported here: shown as configuration"
+# Access and ID tokens live 15 minutes instead of 60: a stolen or disabled account's token dies sooner.
+# update-user-pool-client resets what it is not given, so every setting is repeated here.
+aws cognito-idp update-user-pool-client --user-pool-id "$COGNITO_USER_POOL_ID" --client-id "$COGNITO_CLIENT_ID" \
+  --client-name okr18-web --explicit-auth-flows ALLOW_USER_PASSWORD_AUTH ALLOW_REFRESH_TOKEN_AUTH \
+  --prevent-user-existence-errors ENABLED \
+  --access-token-validity 15 --id-token-validity 15 --refresh-token-validity 1 \
+  --token-validity-units "AccessToken=minutes,IdToken=minutes,RefreshToken=days" \
+  > /dev/null 2>&1 && echo "   tokens: 15 minutes" || echo "   token lifetime unchanged (60 minutes)"
 
 echo "Done. Try: curl -s -X POST $API_URL/api/auth/login -H 'content-type: application/json' -d '{}'"

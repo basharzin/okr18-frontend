@@ -27,6 +27,17 @@
       "Resource": "arn:aws:dynamodb:us-east-1:000000000000:table/LoginAttempts"
     },
     {
+      "Sid": "OwnMetricsOnly",
+      "Effect": "Allow",
+      "Action": "cloudwatch:PutMetricData",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "cloudwatch:namespace": "OKR18/Auth"
+        }
+      }
+    },
+    {
       "Sid": "OwnLogs",
       "Effect": "Allow",
       "Action": [

@@ -1,0 +1,22 @@
+# Runs on every push and pull request for the auth service (the shared login Lambda):
+# install exactly what the lock file says, run the unit tests, and stop if a library
+# we ship has a known high or critical vulnerability.
+name: ci
+on: [push, pull_request]
+permissions:
+  contents: read        # the job only reads the code, it cannot push or change the repo
+jobs:
+  auth-service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform/auth-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm test
+      - name: Dependency check (supply chain)
+        run: npm audit --omit=dev --audit-level=high

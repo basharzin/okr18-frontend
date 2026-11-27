@@ -29,7 +29,7 @@ if none "$CLIENT_ID"; then
   CLIENT_ID=$(aws cognito-idp create-user-pool-client --user-pool-id "$POOL_ID" --client-name okr18-web \
     --explicit-auth-flows ALLOW_USER_PASSWORD_AUTH ALLOW_REFRESH_TOKEN_AUTH \
     --prevent-user-existence-errors ENABLED \
-    --access-token-validity 60 --id-token-validity 60 --refresh-token-validity 1 \
+    --access-token-validity 15 --id-token-validity 15 --refresh-token-validity 1 \
     --token-validity-units "AccessToken=minutes,IdToken=minutes,RefreshToken=days" \
     --query UserPoolClient.ClientId --output text)
 fi

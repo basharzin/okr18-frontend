@@ -5,6 +5,7 @@ const { createCognito } = require('./src/cognito');
 const { createTurnstile } = require('./src/turnstile');
 const { createVerifier } = require('./src/tokens');
 const { createLoginAttempts } = require('./src/loginAttempts');
+const { createMetrics } = require('./src/metrics');
 
 const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:8080').split(',').map((o) => o.trim()).filter(Boolean);
 
@@ -13,5 +14,6 @@ module.exports = createApp({
     turnstile: createTurnstile(),
     verify: createVerifier(),
     attempts: createLoginAttempts(),
+    metrics: createMetrics(),
     allowedOrigins
 });

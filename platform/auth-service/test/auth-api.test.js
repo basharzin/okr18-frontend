@@ -28,9 +28,11 @@ const fakeVerify = async (t) => { if (t !== 'token-a') throw new Error('bad'); r
 
 function setup() {
     const cognito = fakeCognito(); const turnstile = fakeTurnstile();
+    const counted = [];                                        // metric names the app sent
+    const metrics = { count: (name) => counted.push(name) };
     const clock = { t: Date.parse('2026-11-20T10:00:00Z') };
     const attempts = createLoginAttempts({ store: memoryStore(), now: () => clock.t });
-    const server = createApp({ cognito, turnstile, verify: fakeVerify, attempts }).listen(0);
+    const server = createApp({ cognito, turnstile, verify: fakeVerify, attempts, metrics }).listen(0);
     const base = `http://127.0.0.1:${server.address().port}/api/auth`;
     const call = async (method, path, body, token) => {
         const headers = { 'content-type': 'application/json' };
@@ -39,7 +41,7 @@ function setup() {
         const text = await res.text();
         return { status: res.status, body: text ? JSON.parse(text) : null };
     };
-    return { cognito, turnstile, server, call, clock };
+    return { cognito, turnstile, server, call, clock, counted };
 }
 const human = { turnstileToken: 'human-token-ok' };
 
@@ -118,4 +120,15 @@ test('Turnstile client: sends the secret from Secrets Manager and reads success'
     assert.match(sent[0][1], /secret=the-secret/);
     const down = createTurnstile({ secretId: 'arn:x', client: fakeSm, fetchFn: async () => { throw new Error('offline'); } });
     await assert.rejects(down.verify('good-token-123'), BotCheckUnavailable);
+});
+
+test('failed and locked logins are counted for the CloudWatch alarm; a good login is not', async (t) => {
+    const { server, call, counted } = setup(); t.after(() => server.close());
+    await call('POST', '/signup', { email: 'm@okr18.test', password: 'Strong-pass-1', ...human });
+    await call('POST', '/login', { email: 'm@okr18.test', password: 'Strong-pass-1', ...human });
+    assert.deepEqual(counted, []);
+    for (let i = 0; i < 6; i += 1) await call('POST', '/login', { email: 'm@okr18.test', password: 'Wrong-pass-1', ...human });
+    assert.equal(counted.filter((n) => n === 'FailedLogins').length, 6);   // 5 wrong + 1 while locked
+    await call('POST', '/login', { email: 'm@okr18.test', password: 'Strong-pass-1', turnstileToken: 'bot' });
+    assert.ok(counted.includes('BotCheckFailures'));
 });

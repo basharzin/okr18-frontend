@@ -32,7 +32,7 @@ function checkCredentials(body, { signUp }) {
     return { email, password };
 }
 
-function createApp({ cognito, turnstile, verify, attempts, allowedOrigins = [], rateLimitMax }) {
+function createApp({ cognito, turnstile, verify, attempts, allowedOrigins = [], rateLimitMax, metrics = { count() {} } }) {
     const app = express();
     app.disable('x-powered-by');
     app.use((req, res, next) => {
@@ -53,6 +53,7 @@ function createApp({ cognito, turnstile, verify, attempts, allowedOrigins = [], 
         const human = await turnstile.verify(req.body?.turnstileToken, ip);
         if (!human) {
             security('bot_check_failed', { path: req.path });
+            metrics.count('BotCheckFailures');
             return sendError(res, 403, 'BOT_CHECK_FAILED', 'The bot check failed. Reload the page and try again.');
         }
         return next();
@@ -81,6 +82,7 @@ function createApp({ cognito, turnstile, verify, attempts, allowedOrigins = [], 
         const left = await attempts.lockedFor(tag);
         if (left) {
             security('login_locked', { user: tag });
+            metrics.count('FailedLogins');
             res.set('Retry-After', String(Math.ceil(left / 1000)));
             return sendError(res, 429, 'TOO_MANY_ATTEMPTS', `Too many wrong passwords. Try again in ${Math.ceil(left / 60000)} minutes.`);
         }
@@ -94,6 +96,7 @@ function createApp({ cognito, turnstile, verify, attempts, allowedOrigins = [], 
                 // Same answer for a wrong password and an unknown email: no account guessing
                 const state = await attempts.recordFailure(tag);
                 security('login_failed', { user: tag, reason: error.name, failures: state.failures, locked: state.lockedUntil > 0 });
+                metrics.count('FailedLogins');
                 return sendError(res, 401, 'INVALID_CREDENTIALS', 'Email or password is wrong.');
             }
             if (error.name === 'TooManyRequestsException' || error.name === 'LimitExceededException') {

@@ -24,6 +24,9 @@
             <label>Password
                 <input id="password" type="password" autocomplete="current-password" required minlength="1" maxlength="128">
             </label>
+            <label id="confirm-field" class="hidden">Repeat password
+                <input id="password-confirm" type="password" autocomplete="new-password" maxlength="128">
+            </label>
             <p id="password-hint" class="muted hidden">At least 10 characters with upper case, lower case and a number.</p>
             <!-- Cloudflare Turnstile: proves a person is using the form -->
             <div id="turnstile"></div>

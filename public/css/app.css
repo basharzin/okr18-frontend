@@ -100,6 +100,14 @@ textarea { resize: vertical; min-height: 4.5rem; }
 .kr-form { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); display: grid; gap: 0.75rem; }
 .kr-form h3 { margin: 0; font-size: 1rem; }
 
+/* check-ins panel (Check-ins Service) */
+.ci-form { display: grid; gap: 0.75rem; margin-bottom: 1rem; }
+.ci-form textarea { min-height: 4rem; }
+.ci-history h3 { margin: 0 0 0.5rem; font-size: 1rem; }
+.ci-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+.ci-item { border: 1px solid var(--line); border-radius: var(--radius); padding: 0.6rem 0.9rem; }
+.ci-note { margin: 0.25rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
 /* login */
 .auth-wrap { max-width: 420px; margin: 3rem auto; padding: 0 1rem; }
 .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
@@ -113,3 +121,10 @@ dialog::backdrop { background: rgba(20, 28, 45, 0.35); }
     .topbar .inner { gap: 0.75rem; }
     h1 { font-size: 1.35rem; }
 }
+
+/* admin page (Check-ins owner) */
+.table-wrap { overflow-x: auto; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.admin-table th, .admin-table td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--line); }
+.admin-table th { color: var(--muted); font-weight: 600; }
+.admin-table td:first-child { overflow-wrap: anywhere; }
